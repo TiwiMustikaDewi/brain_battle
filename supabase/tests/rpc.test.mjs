@@ -300,6 +300,14 @@ test('brain battle rules', async (t) => {
     await rejects(admin(db, 'admin_adjust_score', hgB.id, 25, ' '), 'REASON_REQUIRED')
     assert.equal((await q(`select battle_score from homegroups where id = $1`, [hgB.id]))[0].battle_score, -25)
 
+    // Buzzer codes stay readable for admins; re-saving the same code keeps the operator.
+    assert.equal((await as(db, 'authenticated', `select buzzer_code from homegroup_credentials where homegroup_id = $1`, [hgB.id]))[0].buzzer_code, 'BRAVO2')
+    assert.equal((await as(db, 'anon', `select buzzer_code from homegroup_credentials`)).length, 0)
+    await admin(db, 'admin_set_buzzer_code', hgB.id, 'bravo2')
+    assert.equal((await anon(db, 'buzzer_heartbeat', buzz.B)).ok, true)
+    await admin(db, 'admin_set_buzzer_code', hgB.id, 'BRAVO3')
+    assert.equal((await anon(db, 'buzzer_heartbeat', buzz.B)).ok, false)
+
     await admin(db, 'admin_force_release', hgA.id)
     assert.equal((await anon(db, 'buzzer_heartbeat', buzz.A)).ok, false)
     await rejects(anon(db, 'press_buzzer', buzz.A, 0), 'BUZZER_REVOKED')
@@ -319,5 +327,6 @@ test('brain battle rules', async (t) => {
     assert.equal((await q(`select count(*)::int n from participants where session_id = $1`, [s1.id]))[0].n, 17)
     assert.equal((await q(`select count(*)::int n from participants where session_id = $1 and token_hash is not null`, [s1.id]))[0].n, 0)
     await rejects(anon(db, 'get_me', tokens.A1), 'INVALID_TOKEN')
+    assert.equal((await q(`select roster_locked from game_sessions where id = $1`, [s1.id]))[0].roster_locked, false)
   })
 })

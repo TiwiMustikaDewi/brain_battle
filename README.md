@@ -40,7 +40,7 @@ Stack: React + TypeScript + Vite + Tailwind CSS, Supabase (PostgreSQL, Realtime,
 ## Persiapan sebelum acara
 
 1. `/admin/questions` — tinjau paket A (Sesi 1) dan B (Sesi 2). Seed berisi 17 soal per paket: materi CB3 (Problem Tree, Theory of Change, Issue→Problem→Need→Solution), pengetahuan umum, tebak-tebakan, hitungan, dan soal cerita.
-2. `/admin/s/SESI1` → tab **Roster & Kode**: ganti nama HG, isi anggota resmi (satu nama per baris), lalu **Buat kode buzzer semua HG** dan cetak kartu kodenya. Kode buzzer disimpan sebagai hash, jadi hanya terlihat sekali.
+2. `/admin/s/SESI1` → tab **Roster & Kode**: ganti nama HG, isi anggota resmi (satu nama per baris), lalu **Buat kode untuk HG yang belum punya** dan cetak kartu kodenya. Kode buzzer tetap sama sampai diganti, dan selalu bisa dilihat lagi di kartu kode (hanya admin).
 3. Ulangi untuk `SESI2`.
 4. **Gladi bersih + simulasi beban** (lihat Pengujian).
 
@@ -59,7 +59,7 @@ Darurat: **Jeda** menolak semua jawaban/buzzer; **Lepas** di samping HG melepas 
 
 Default ini aku pilih supaya bisa langsung jalan. Semuanya bisa diubah:
 
-- **Nama HG**: placeholder `HG 1`–`HG 8` (Sesi 1) dan `HG 9`–`HG 16` (Sesi 2). Ganti di tab Roster.
+- **Nama HG**: placeholder `HG 1`–`HG 8` (Sesi 1) dan `HG 9`, `HG 10`, `HG 12`–`HG 16`, dan `HG 17` (Sesi 2; HG 11 diganti HG 17). Ganti di tab Roster.
 - **Verifikasi anggota**: tanpa kode HG. Admin mengisi roster resmi; peserta memilih HG dan namanya. Selama roster belum dikunci, peserta boleh menambahkan nama sendiri. Nama yang sudah masuk di satu HP **terkunci** (tidak bisa direbut HP lain). Kalau peserta ganti HP, admin menekan **Reset** di samping namanya (tab Roster), atau peserta menekan *Keluar dari perangkat ini*. Reset sesi mengeluarkan semua perangkat.
 - **Quick Fire**: tiap soal dikendalikan admin (bukan otomatis). Timer 20–25 detik dihitung server, ditambah toleransi latensi 1,5 detik.
 - **Rebutan ulang**: setiap HG hanya 1 kali percobaan per soal. HG yang salah dikecualikan dari soal itu, lalu admin bisa membuka buzzer lagi untuk HG lain.

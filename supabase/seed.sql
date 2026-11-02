@@ -13,7 +13,8 @@ with palette(n, color) as (
          (5, '#06b6d4'), (6, '#3b82f6'), (7, '#a855f7'), (8, '#ec4899')
 ), ins as (
   insert into public.homegroups (session_id, name, color, sort_order)
-  select s.id, 'HG ' || (case s.code when 'SESI1' then p.n else p.n + 8 end), p.color, p.n
+  -- Session 2 is HG 9–16, except HG 11 no longer exists and is replaced by HG 17.
+  select s.id, 'HG ' || (case when s.code = 'SESI1' then p.n when p.n + 8 = 11 then 17 else p.n + 8 end), p.color, p.n
     from public.game_sessions s cross join palette p
    where s.code in ('SESI1', 'SESI2')
   on conflict (session_id, name) do nothing
@@ -109,9 +110,9 @@ insert into public.questions (pack, round, order_no, category, difficulty, body,
  'Sumatra (antara lain Bengkulu)', 30, 100, 50),
 
 -- Pack A — Final Showdown
-('A', 'final', 1, 'Studi Kasus CB3', 'sulit',
- 'Masalah sebuah proyek: belum ada sistem pengangkutan sampah terpilah. Tetapi kegiatan proyeknya hanya seminar. Menurut materi, apa yang harus dilakukan tim?',
- 'Tim harus bisa menjelaskan bagaimana seminar mengatasi hambatan sistem pengangkutan; jika hubungan itu tidak jelas, solusinya perlu diperbaiki agar relevan dengan akar masalah.', 45, 200, 100),
+('A', 'final', 1, 'Pengetahuan Umum', 'sedang',
+ 'Apa nama puncak gunung tertinggi di Indonesia, dan di pulau mana letaknya?',
+ 'Puncak Jaya / Carstensz Pyramid (±4.884 mdpl), di Pulau Papua', 45, 200, 100),
 ('A', 'final', 2, 'Logika', 'sulit',
  'Sebuah botol beserta tutupnya seharga Rp11.000. Botol Rp10.000 lebih mahal daripada tutupnya. Berapa harga tutupnya?',
  'Rp500 (botol Rp10.500)', 45, 200, 100),
@@ -140,9 +141,9 @@ insert into public.questions (pack, round, order_no, category, difficulty, body,
  'Nusa Tenggara Timur (NTT)', 30, 100, 50),
 
 -- Pack B — Final Showdown
-('B', 'final', 1, 'Studi Kasus CB3', 'sulit',
- 'Sebuah tim ingin meningkatkan minat baca anak dan langsung memutuskan menyumbang buku. Menurut materi, apa kesalahan mereka dan apa yang seharusnya dicek lebih dulu?',
- 'Mereka langsung menyimpulkan solusi tanpa memahami kebutuhan. Cek dulu: akses terhadap bacaan, kesempatan membaca, pendampingan, dan lingkungan yang mendukung.', 45, 200, 100),
+('B', 'final', 1, 'Pengetahuan Umum', 'sedang',
+ 'Danau vulkanik terbesar di dunia ada di Indonesia. Apa nama danau tersebut dan di provinsi mana letaknya?',
+ 'Danau Toba, di Provinsi Sumatra Utara', 45, 200, 100),
 ('B', 'final', 2, 'Logika', 'sulit',
  'Sebuah buku dan sebuah pensil seharga Rp12.000. Buku Rp10.000 lebih mahal daripada pensil. Berapa harga pensilnya?',
  'Rp1.000 (buku Rp11.000)', 45, 200, 100),

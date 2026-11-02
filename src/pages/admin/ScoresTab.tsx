@@ -113,7 +113,7 @@ export function ScoresTab({
         <Card className="border-rose-500/40 p-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-rose-300">Zona bahaya</p>
           <p className="mb-3 text-sm text-muted">
-            Reset menghapus semua jawaban, buzzer, taruhan, dan skor sesi ini, mengeluarkan semua perangkat peserta, lalu kembali ke lobby. Homegroup, roster, kode buzzer, dan soal tetap ada. Ekspor CSV dulu.
+            Reset menghapus semua jawaban, buzzer, taruhan, dan skor sesi ini, mengeluarkan semua perangkat peserta, membuka kunci roster, lalu kembali ke lobby. Homegroup, roster, kode buzzer, dan soal tetap ada. Ekspor CSV dulu.
           </p>
           <Button
             variant="danger"

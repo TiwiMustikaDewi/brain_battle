@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, ErrorText, Input, Label, Textarea } from '../../components/ui'
-import { rpc } from '../../lib/supabase'
+import { rpc, supabase } from '../../lib/supabase'
 import type { GameSession } from '../../lib/types'
 import { useAction, type Dashboard, type DashHomegroup } from './shared'
 
@@ -15,21 +15,26 @@ export function RosterTab({ session, dash, refresh }: { session: GameSession; da
   const { busy, error, run } = useAction(refresh)
   const [name, setName] = useState(session.name)
   const [pack, setPack] = useState(session.pack)
-  const [codes, setCodes] = useState<Record<string, string> | null>(null)
+  const [codes, setCodes] = useState<Record<string, string>>({})
   const sid = session.id
   const locked = session.roster_locked
 
-  async function generateAll() {
-    if (!confirm('Buat kode buzzer BARU untuk semua homegroup? Kode lama tidak berlaku dan buzzer yang aktif akan dilepas.')) return
-    const next: Record<string, string> = {}
+  // Buzzer codes are readable by admins only (RLS), so they can be looked up and printed any time.
+  const loadCodes = useCallback(async () => {
+    const { data } = await supabase.from('homegroup_credentials').select('homegroup_id, buzzer_code')
+    setCodes(Object.fromEntries((data ?? []).filter((r) => r.buzzer_code).map((r) => [r.homegroup_id, r.buzzer_code as string])))
+  }, [])
+  useEffect(() => {
+    void loadCodes()
+  }, [loadCodes])
+
+  const missing = dash.homegroups.filter((h) => !codes[h.id])
+
+  async function generate(targets: DashHomegroup[]) {
     await run('gen', async () => {
-      for (const h of dash.homegroups) {
-        const c = randomCode()
-        await rpc('admin_set_buzzer_code', { p_homegroup_id: h.id, p_code: c })
-        next[h.id] = c
-      }
+      for (const h of targets) await rpc('admin_set_buzzer_code', { p_homegroup_id: h.id, p_code: randomCode() })
     })
-    setCodes(next)
+    await loadCodes()
   }
 
   return (
@@ -80,45 +85,55 @@ export function RosterTab({ session, dash, refresh }: { session: GameSession; da
         <Card className="flex flex-col gap-3 p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Kode buzzer</p>
           <p className="text-xs text-muted">
-            Kode disimpan dalam bentuk hash, jadi hanya terlihat sekali setelah dibuat. Catat/cetak lalu berikan ke operator buzzer
-            masing-masing homegroup.
+            Kode buzzer tetap sama sampai kamu menggantinya, dan selalu bisa dilihat di kartu kode (hanya admin). Berikan ke operator
+            buzzer masing-masing homegroup.
           </p>
-          <Button size="sm" busy={busy === 'gen'} onClick={generateAll}>Buat kode buzzer semua HG</Button>
+          {missing.length > 0 && (
+            <Button size="sm" busy={busy === 'gen'} onClick={() => generate(missing)}>
+              Buat kode untuk {missing.length} HG yang belum punya
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-rose-300"
+            disabled={busy === 'gen'}
+            onClick={() => confirm('Ganti SEMUA kode buzzer? Kode lama tidak berlaku dan buzzer yang aktif akan dilepas.') && generate(dash.homegroups)}
+          >
+            Ganti semua kode
+          </Button>
         </Card>
         <ErrorText>{error}</ErrorText>
       </div>
 
       <div className="flex flex-col gap-4">
-        {codes && (
-          <Card className="border-volt p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="font-display text-lg font-bold">Kartu kode — {session.code}</p>
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={() => window.print()}>Cetak</Button>
-                <Button size="sm" variant="ghost" onClick={() => setCodes(null)}>Tutup</Button>
-              </div>
-            </div>
-            <div className="-mx-1 overflow-x-auto px-1">
-            <table className="w-full min-w-[32rem] text-left">
-              <thead className="text-xs uppercase tracking-wider text-muted">
-                <tr><th className="py-1">Homegroup</th><th>Kode buzzer (operator)</th></tr>
-              </thead>
-              <tbody>
-                {dash.homegroups.map((h) => (
-                  <tr key={h.id} className="border-t border-line">
-                    <td className="py-2 font-semibold">{h.name}</td>
-                    <td className="font-display text-xl tracking-widest text-volt">{codes[h.id] ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          </Card>
-        )}
+        <Card className="border-volt p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="font-display text-lg font-bold">Kartu kode buzzer — {session.code}</p>
+            <Button size="sm" variant="secondary" onClick={() => window.print()}>Cetak</Button>
+          </div>
+          <div className="-mx-1 overflow-x-auto px-1">
+          <table className="w-full min-w-[32rem] text-left">
+            <thead className="text-xs uppercase tracking-wider text-muted">
+              <tr><th className="py-1">Homegroup</th><th>Kode buzzer (operator)</th></tr>
+            </thead>
+            <tbody>
+              {dash.homegroups.map((h) => (
+                <tr key={h.id} className="border-t border-line">
+                  <td className="py-2 font-semibold">{h.name}</td>
+                  <td className="font-display text-xl tracking-widest text-volt">
+                    {codes[h.id] ?? <span className="text-sm tracking-normal text-muted">{h.has_buzzer_code ? 'kode lama tersembunyi — buat ulang' : 'belum ada'}</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        </Card>
 
         <div className="grid gap-4 xl:grid-cols-2">
           {dash.homegroups.map((h) => (
-            <HomegroupEditor key={h.id} sessionId={sid} hg={h} locked={locked} refresh={refresh} />
+            <HomegroupEditor key={h.id} sessionId={sid} hg={h} locked={locked} code={codes[h.id]} refresh={() => { refresh(); void loadCodes() }} />
           ))}
           {!locked && <NewHomegroup sessionId={sid} count={dash.homegroups.length} refresh={refresh} />}
         </div>
@@ -127,7 +142,7 @@ export function RosterTab({ session, dash, refresh }: { session: GameSession; da
   )
 }
 
-function HomegroupEditor({ sessionId, hg, locked, refresh }: { sessionId: string; hg: DashHomegroup; locked: boolean; refresh: () => void }) {
+function HomegroupEditor({ sessionId, hg, locked, code, refresh }: { sessionId: string; hg: DashHomegroup; locked: boolean; code?: string; refresh: () => void }) {
   const { busy, error, run } = useAction(refresh)
   const [name, setName] = useState(hg.name)
   const [color, setColor] = useState(hg.color)
@@ -184,14 +199,13 @@ function HomegroupEditor({ sessionId, hg, locked, refresh }: { sessionId: string
           busy={busy === 'code'}
           onClick={async () => {
             if (await run('code', () => rpc('admin_set_buzzer_code', { p_homegroup_id: hg.id, p_code: buzzerCode }))) {
-              alert(`Kode buzzer ${hg.name}: ${buzzerCode}`)
               setBuzzerCode('')
             }
           }}
         >
           Set
         </Button>
-        <span className="text-xs text-muted">{hg.has_buzzer_code ? '✓ kode buzzer ada' : '⚠ belum ada kode buzzer'}</span>
+        <span className="text-xs text-muted">{code ? <>Kode buzzer: <b className="font-display tracking-widest text-volt">{code}</b></> : hg.has_buzzer_code ? '✓ kode lama (tersembunyi)' : '⚠ belum ada kode buzzer'}</span>
         {!locked && (
           <Button size="sm" variant="ghost" className="ml-auto text-rose-300" busy={busy === 'del'}
             onClick={() => confirm(`Hapus ${hg.name} beserta anggotanya?`) && run('del', () => rpc('admin_delete_homegroup', { p_id: hg.id }))}>

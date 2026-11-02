@@ -122,7 +122,10 @@ export default function Join() {
                 ))}
               </div>
             ) : (
-              locked && <p className="text-sm text-muted">Belum ada anggota resmi di homegroup ini. Hubungi panitia.</p>
+              locked && <p className="text-sm text-muted">Pendaftaran nama baru ditutup karena permainan sudah dimulai. Hubungi panitia untuk didaftarkan.</p>
+            )}
+            {locked && hg.members.length > 0 && (
+              <p className="mt-3 text-xs text-muted">Namamu tidak ada? Pendaftaran nama baru ditutup karena permainan sudah dimulai — hubungi panitia.</p>
             )}
             {!locked && (
               <div className="mt-3">
